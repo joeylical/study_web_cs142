@@ -5,9 +5,11 @@ class Cs142TemplateProcessor {
 
   fillIn(dictionary) {
     let template = this._template;
-    for(k in dictionary) {
+    for(let k in dictionary) {
       template = template.replace(`{{${k}}}`, dictionary[k])
     }
     return template;
   }
 }
+
+window.Cs142TemplateProcessor = Cs142TemplateProcessor;

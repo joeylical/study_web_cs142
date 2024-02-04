@@ -1,16 +1,16 @@
 function cs142MakeMultiFilter(originalArray) {
-  function arrayFilterer(filterCriteria, callback=x=>x) {
-    // let currentArray = originalArray.map(x=>x);
+  let currentArray = originalArray.map((x) => x);
+  function arrayFilterer(filterCriteria, callback) {
     if (typeof filterCriteria == "undefined") {
-      return originalArray;
+      return currentArray;
     }
-    let currentArray = originalArray.filter(filterCriteria);
+    if (typeof filterCriteria == "function") {
+      currentArray = currentArray.filter(filterCriteria);
+    }
     if (typeof callback == "function") {
-      Object.setPrototypeOf(currentArray, this);
-      callback(currentArray);
+      callback.call(originalArray, currentArray);
     }
     return arrayFilterer;
   }
-
   return arrayFilterer;
 }
