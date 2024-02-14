@@ -16,6 +16,7 @@ if (cs142models === undefined) {
 
 cs142models.exampleModel = function () {
   return {
-    name: "Unknown Name",
+    name: "A long long long long long long long long long long name.",
+    motto: "香蕉大则香蕉皮也大",
   };
 };

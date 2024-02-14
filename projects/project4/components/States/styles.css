@@ -4,3 +4,7 @@
  * Since CSS uses a global name space for classes we should use names starting
  * with "cs142-states-" here.
  */
+
+ul {
+    list-style-type: none;
+}

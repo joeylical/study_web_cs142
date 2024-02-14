@@ -13,10 +13,34 @@ class States extends React.Component {
       "window.cs142models.statesModel()",
       window.cs142models.statesModel()
     );
+    this.state = {
+      leading: '',
+      states: window.cs142models.statesModel(),
+      selectedStates: window.cs142models.statesModel(),
+    }
+  }
+
+  updateLeading(event) {
+    const leading = event.target.value;
+    let r = this.state.states.filter(s => s.toLowerCase().startsWith(leading));
+    if (r.length == 0) {
+      r = [<i>No Matches</i>];
+    }
+    this.setState({ leading:  leading, selectedStates: r});
   }
 
   render() {
-    return <div>Replace this with the code for CS142 Project 4, Problem 2</div>;
+    return <div>
+      <label>State Name:</label>
+      <input
+        type="text"
+        value={this.state.leading}
+        onChange={(e) => this.updateLeading(e)}
+      />
+      <ul >
+      {this.state.selectedStates.map(s=><li>{s}</li>)}
+      </ul>
+    </div>;
   }
 }
 
