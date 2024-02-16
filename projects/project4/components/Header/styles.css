@@ -1,0 +1,38 @@
+/**
+ * CSS for the CS142 Project 4, Problem 2 States component.
+ * 
+ * Since CSS uses a global name space for classes we should use names starting
+ * with "cs142-states-" here.
+ */
+:root {
+    --banner_color: #f8f8f8;
+}
+
+.header {
+    margin: 0px -8px -8px -8px;
+
+    position: fixed;
+    top: 0;
+    width: 100%;
+
+    display: flex;
+    flex-flow: row;
+    /* justify-content: space-evenly; */
+    background: var(--banner_color);
+
+    /* height: 56px; */
+    /* border-bottom: 1px solid gray; */
+
+    box-shadow: 0px 3px 3px lightgray;
+}
+
+#avatar {
+    margin: 8px;
+}
+
+.banner label {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 24px;
+    font-weight: bold;
+    margin: 4px;
+}
