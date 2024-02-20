@@ -8,24 +8,51 @@ import TopBar from "./components/TopBar";
 import UserDetail from "./components/UserDetail";
 import UserList from "./components/UserList";
 import UserPhotos from "./components/UserPhotos";
+import fetchModel from "./lib/fetchModelData";
 
 class PhotoShare extends React.Component {
   constructor(props) {
     super(props);
+    this.state = {
+      users: [],
+      current_uid: '',
+      current_user: '',
+      page: '',
+    };
+
+    fetchModel('/user/list').then(
+      (users) => {
+        window.users = users;
+        this.setState({users: users});
+      },
+      console.log
+    );
+    window.users = this.state.users; //this.state.users.filter((user) => user._uid === id);
+  }
+
+  updateState(uid, user, page) {
+    if (user !== this.state.current_user || page !== this.state.page) {
+      this.setState({
+        current_uid: uid,
+        current_user: user,
+        page: page,
+      });
+    }
   }
 
   render() {
     return (
       <HashRouter>
         <div>
+          {this.state.current_user}
           <Grid container spacing={2}>
             <Grid item xs={12}>
-              <TopBar />
+              <TopBar uid={this.state.current_uid} user={this.state.current_user} page={this.state.page} />
             </Grid>
             <div className="cs142-main-topbar-buffer" />
             <Grid item sm={3}>
               <Paper className="cs142-main-grid-item">
-                <UserList />
+                <UserList users={this.state.users} />
               </Paper>
             </Grid>
             <Grid item sm={9}>
@@ -52,11 +79,11 @@ class PhotoShare extends React.Component {
                   />
                   <Route
                     path="/users/:userId"
-                    render={(props) => <UserDetail {...props} />}
+                    render={(props) => <UserDetail update={(...args) => this.updateState(...args)} {...props} />}
                   />
                   <Route
                     path="/photos/:userId"
-                    render={(props) => <UserPhotos {...props} />}
+                    render={(props) => <UserPhotos update={(...args) => this.updateState(...args)} {...props} />}
                   />
                   <Route path="/users" component={UserList} />
                 </Switch>
