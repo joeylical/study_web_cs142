@@ -143,7 +143,18 @@ app.get("/test/:p1", function (request, response) {
  * URL /user/list - Returns all the User objects.
  */
 app.get("/user/list", function (request, response) {
-  response.status(200).send(cs142models.userListModel());
+  console.log('access /user/list');
+  User.find(function(error, users) {
+    if (error) {
+      response.status(400).send(error);
+    } else {
+      response.status(200).send(JSON.stringify(users.map(u => ({
+        _id: u._id,
+        first_name: u.first_name,
+        last_name: u.last_name
+      }))));
+    }
+  });
 });
 
 /**
@@ -151,13 +162,24 @@ app.get("/user/list", function (request, response) {
  */
 app.get("/user/:id", function (request, response) {
   const id = request.params.id;
-  const user = cs142models.userModel(id);
-  if (user === null) {
-    console.log("User with _id:" + id + " not found.");
-    response.status(400).send("Not found");
-    return;
-  }
-  response.status(200).send(user);
+  console.log(`access /user/${id}`);
+  User.find({_id: id}).exec(function(error, users) {
+    if (error) {
+      response.status(400).send(error);
+    } else if (users.length !== 1) {
+      response.status(400).send(users.toString());
+    } else {
+      const user = {
+        _id: users[0]._id,
+        first_name: users[0].first_name,
+        last_name: users[0].last_name,
+        location: users[0].location,
+        description: users[0].description,
+        occupation: users[0].occupation
+      };
+      response.status(200).send(JSON.stringify(user));
+    }
+  });
 });
 
 /**
@@ -165,13 +187,50 @@ app.get("/user/:id", function (request, response) {
  */
 app.get("/photosOfUser/:id", function (request, response) {
   const id = request.params.id;
-  const photos = cs142models.photoOfUserModel(id);
-  if (photos.length === 0) {
-    console.log("Photos for user with _id:" + id + " not found.");
-    response.status(400).send("Not found");
-    return;
-  }
-  response.status(200).send(photos);
+  console.log(`access /photosOfUser/${id}`);
+
+  Photo.find({user_id: id}).exec(function(error, photos) {
+    if (error) {
+      response.status(400).send(error);
+    } else {
+      const users = [];
+      photos.forEach(p => {
+        p.comments.forEach(c => {
+          const cpid= c.user_id.toString();
+          if (users.indexOf(cpid) < 0){
+            users.push(cpid);
+          }
+        });
+      });
+
+      User.find({_id: {$in: users}}).exec(function(err, us) {
+        if(err) {
+          console.log(err);
+        }
+        const users_table = new Map(
+          us.map(u => ([u._id.toString(), {
+            first_name: u.first_name,
+            last_name: u.last_name
+          }]))
+        );
+        
+        const newphoto = photos.map(p => ({
+          _id: p._id,
+          file_name: p.file_name,
+          date_time: p.date_time,
+          user_id: p.user_id,
+          comments: p.comments.map(c => ({
+            comment: c.comment,
+            date_time: c.date_time,
+            _id: c._id,
+            user: users_table.get(c.user_id.toString())
+          }))
+        }));
+
+        response.status(200).contentType('json').send(JSON.stringify(newphoto));
+      });
+    }
+  });
 });
 
 const server = app.listen(3000, function () {

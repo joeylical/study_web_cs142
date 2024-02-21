@@ -6,8 +6,9 @@
     "components",
     "test",
     "schema",
-    "modelData"
+    "modelData",
+    "mongodb/*"
   ],
-  "verbose": true,
+  "verbose": false,
   "ext": "js"
 }
