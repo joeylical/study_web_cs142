@@ -53,7 +53,7 @@ const SchemaInfo = require("./schema/schemaInfo.js");
 
 // XXX - Your submission should work without this line. Comment out or delete
 // this line for tests and before submission!
-const cs142models = require("./modelData/photoApp.js").cs142models;
+// const cs142models = require("./modelData/photoApp.js").cs142models;
 mongoose.set("strictQuery", false);
 mongoose.connect("mongodb://127.0.0.1/cs142project6", {
   useNewUrlParser: true,
@@ -63,6 +63,11 @@ mongoose.connect("mongodb://127.0.0.1/cs142project6", {
 // We have the express static module
 // (http://expressjs.com/en/starter/static-files.html) do all the work for us.
 app.use(express.static(__dirname));
+
+function check_login(request) {
+  console.log(request.session);
+  return 'user' in request.session && request.session.user !== '';
+}
 
 app.get("/", function (request, response) {
   response.send("Simple web server of files from " + __dirname);
@@ -150,24 +155,32 @@ app.get("/test/:p1", function (request, response) {
  * URL /user/list - Returns all the User objects.
  */
 app.get("/user/list", function (request, response) {
-  console.log('access /user/list');
-  User.find(function(error, users) {
-    if (error) {
-      response.status(400).send(error);
-    } else {
-      response.status(200).send(JSON.stringify(users.map(u => ({
-        _id: u._id,
-        first_name: u.first_name,
-        last_name: u.last_name
-      }))));
-    }
-  });
+  if (check_login(request)) {
+    User.find(function(error, users) {
+      if (error) {
+        response.status(400).send(error);
+      } else {
+        response.status(200).send(JSON.stringify(users.map(u => ({
+          _id: u._id,
+          first_name: u.first_name,
+          last_name: u.last_name
+        }))));
+      }
+    });
+  } else {
+    response.status(401).send('not login');
+  }
+
 });
 
 /**
  * URL /user/:id - Returns the information for User (id).
  */
 app.get("/user/:id", function (request, response) {
+  if (!check_login(request)) {
+    response.status(401).send('not login');
+    return;
+  }
   const id = request.params.id;
   console.log(`access /user/${id}`);
   User.find({_id: id}).exec(function(error, users) {
@@ -193,6 +206,11 @@ app.get("/user/:id", function (request, response) {
  * URL /photosOfUser/:id - Returns the Photos for User (id).
  */
 app.get("/photosOfUser/:id", function (request, response) {
+  if (!check_login(request)) {
+    response.status(401).send('not login');
+    return;
+  }
+
   const id = request.params.id;
   console.log(`access /photosOfUser/${id}`);
 
@@ -238,6 +256,67 @@ app.get("/photosOfUser/:id", function (request, response) {
       });
     }
   });
+});
+
+app.get("/admin/login", function(request, response) {
+  if (check_login(request)) {
+    response.status(200).send(JSON.stringify({user: request.session.user}));
+  } else {
+    response.status(401).send('failed');
+  }
+});
+
+app.post("/admin/login", function(request, response) {
+  const username = request.body.loginname;
+  const password = request.body.password;
+  //todo: login logic
+  console.log(username, password);
+  User.find({login_name: username}).exec((err, user) => {
+    if (!err) {
+      console.log(user);
+      const u = user[0];
+      request.session.user = u._id;
+      response.status(200).send(JSON.stringify(u));
+    } else {
+      response.status(401).send('failed');
+    }
+  });
+});
+
+app.get("/admin/logout", function(request, response) {
+  delete request.session.user;
+  response.status(200).send('ok');
+});
+
+app.post("/commentsOfPhoto/:photo_id", function(request, response) {
+  if (!check_login(request)) {
+    response.status(401).send('not login');
+    return;
+  }
+
+  const photoid = request.params.photo_id;
+  const comment = request.body.comment;
+  console.log(photoid, comment);
+  if (comment.length !== 0) {
+    Photo.find({_id: photoid}).exec((err, photos) => {
+      if (err) {
+        console.log(err);
+        response.status(400).send('failed');
+      } else {
+        const photo = photos[0];
+        const new_comment = {
+          comment: comment,
+          date_time: new Date().toISOString(),
+          user_id: request.session.user,
+        };
+        photo.comments = photo.comments.concat([new_comment]);
+        photo.save();
+        response.status(200).send(JSON.stringify(new_comment));
+      }
+    });
+  } else {
+    response.status(400).send('empty comment');
+  }
 });
 
 const server = app.listen(3000, function () {

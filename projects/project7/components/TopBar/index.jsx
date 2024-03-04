@@ -1,5 +1,7 @@
 import React from "react";
-import { AppBar, Toolbar, Typography } from "@mui/material";
+import { AppBar, Toolbar, Typography, Button } from "@mui/material";
+import axios from "axios";
+
 import Avatar from "../UserList/avatar";
 
 import "./styles.css";
@@ -14,7 +16,9 @@ class TopBar extends React.Component {
       uid: this.props.uid,
       user: this.props.user,
       page: this.props.page,
+      logout: this.props.logout,
     };
+    this.logout = this.logout.bind(this);
   }
 
   static getDerivedStateFromProps(props) {
@@ -25,6 +29,15 @@ class TopBar extends React.Component {
     };
   }
 
+  logout() {
+    axios.get("/admin/logout").then(() => {
+      console.log(this);
+      this.state.logout();
+    }).catch((error) => {
+      console.log(error);
+    });
+  }
+
   render() {
     return (
       <AppBar className="cs142-topbar-appBar" position="absolute">
@@ -33,6 +46,16 @@ class TopBar extends React.Component {
           <Typography variant="h5" color="inherit">
             {this.state.page==='detail'?this.state.user:'Photos of '+this.state.user}
           </Typography>
+          <Button
+            style={{
+              color: "white",
+              marginLeft: "auto",
+            }}
+            variant="text"
+            onClick={this.logout}
+            >
+              Logout
+          </Button>
         </Toolbar>
       </AppBar>
     );
