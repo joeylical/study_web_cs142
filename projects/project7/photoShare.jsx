@@ -82,7 +82,13 @@ class PhotoShare extends React.Component {
             {this.state.current_user}
             <Grid container spacing={2}>
               <Grid item xs={12}>
-                <TopBar uid={this.state.current_uid} user={this.state.current_user} page={this.state.page} logout={this.logout}/>
+                <TopBar
+                  uid={this.state.current_uid}
+                  user={this.state.current_user}
+                  page={this.state.page}
+                  logout={this.logout}
+                  current_user={this.state.login_user}
+                  />
               </Grid>
               <div className="cs142-main-topbar-buffer" />
               <Grid item sm={3}>

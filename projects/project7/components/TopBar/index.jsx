@@ -16,6 +16,7 @@ class TopBar extends React.Component {
       uid: this.props.uid,
       user: this.props.user,
       page: this.props.page,
+      current_user: this.props.current_user,
       logout: this.props.logout,
     };
     this.logout = this.logout.bind(this);
@@ -38,6 +39,18 @@ class TopBar extends React.Component {
     });
   }
 
+  upload() {
+    const input = document.querySelector('#uploader');
+    input.click();
+  }
+
+  real_upload(event) {
+    console.log(event.target.files);
+    const formData = new FormData();
+    formData.append('file', event.target.files[0]);
+    axios.post('/photos/new', formData);
+  }
+
   render() {
     return (
       <AppBar className="cs142-topbar-appBar" position="absolute">
@@ -46,15 +59,33 @@ class TopBar extends React.Component {
           <Typography variant="h5" color="inherit">
             {this.state.page==='detail'?this.state.user:'Photos of '+this.state.user}
           </Typography>
+
+          <input
+            type="file"
+            id="uploader"
+            style={{
+              display: "none",
+            }}
+            onChange={this.real_upload}
+            />
+          <Button
+            style={{
+              marginLeft: "auto",
+            }}
+            variant="contained"
+            onClick={this.upload}
+            >
+              Upload
+          </Button>
           <Button
             style={{
               color: "white",
-              marginLeft: "auto",
+              marginLeft: "10px",
             }}
             variant="text"
             onClick={this.logout}
             >
-              Logout
+              {this.state.current_user}, Logout
           </Button>
         </Toolbar>
       </AppBar>

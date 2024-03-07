@@ -41,6 +41,9 @@ const express = require("express");
 const session = require("express-session");
 const bodyParser = require("body-parser");
 const multer = require("multer");
+const uploader = multer({ dest: 'images/'});
+
+const { createHash } = require('node:crypto');
 
 const app = express();
 app.use(session({secret: "secretKey", resave: false, saveUninitialized: false}));
@@ -266,17 +269,31 @@ app.get("/admin/login", function(request, response) {
   }
 });
 
+function hash(salt_string, password) {
+  const sha1 = createHash('sha-1');
+  sha1.update(salt_string);
+  sha1.update(password);
+  return sha1.digest('hex');
+}
+
 app.post("/admin/login", function(request, response) {
   const username = request.body.loginname;
   const password = request.body.password;
   //todo: login logic
   console.log(username, password);
   User.find({login_name: username}).exec((err, user) => {
-    if (!err) {
+    if (!err && user.length) {
       console.log(user);
       const u = user[0];
-      request.session.user = u._id;
-      response.status(200).send(JSON.stringify(u));
+      const salt_string = u.salt_string;
+      const ph = hash(salt_string, password);
+      if (ph === u.password) {
+        request.session.user = u._id;
+        response.status(200).send(JSON.stringify(u));
+      } else {
+        response.status(401).send('failed');
+      }
+
     } else {
       response.status(401).send('failed');
     }
@@ -317,6 +334,73 @@ app.post("/commentsOfPhoto/:photo_id", function(request, response) {
   } else {
     response.status(400).send('empty comment');
   }
+});
+
+app.post("/photos/new", uploader.single('file'), function(request, response) {
+  if (!check_login(request)) {
+    response.status(401).send('not login');
+    return;
+  }
+
+  const file = request.file;
+  console.log(file);
+  const newItem = {
+    user_id: request.session.user,
+    file_name: file.filename,
+    date_time: new Date(),
+    comments: [],
+  };
+  const newPhoto = new Photo(newItem);
+  newPhoto.save().then((photo) => {
+    console.log(photo);
+    response.status(200).send('ok');
+  }).catch((err) => {
+    console.log(err);
+    response.status(400).send('failed');
+  });
+});
+
+function salt() {    
+  let t = "ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678";
+  let a = t.length;
+  let n = "";
+  for(let i = 0;i < 32;i++) {
+    n += t.charAt(Math.floor(Math.random() * a));
+  }
+  return n;
+}
+
+app.post('/user', function(request, response) {
+  const login_name = request.body.login_name;
+  const password = request.body.password;
+  const first_name = request.body.first_name;
+  const last_name = request.body.last_name;
+  const location = request.body.location;
+  const description = request.body.description;
+  const occupation = request.body.occupation;
+  const salt_string = salt();
+
+  User.find({login_name: login_name}).exec((err, users) => {
+    if (err) {
+      console.log(err);
+    } else if (users.length > 0) {
+      console.log('existed');
+      response.status(200).send('existed');
+    } else {
+      const newUser = new User({
+        login_name: login_name,
+        password: hash(salt_string, password),
+        first_name: first_name,
+        last_name: last_name,
+        location: location,
+        description: description,
+        occupation: occupation,
+        salt_string: salt_string,
+      });
+      newUser.save();
+      response.status(200).send('ok');
+    }
+  });
 });
 
 const server = app.listen(3000, function () {
