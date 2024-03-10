@@ -53,6 +53,7 @@ app.use(bodyParser.json());
 const User = require("./schema/user.js");
 const Photo = require("./schema/photo.js");
 const SchemaInfo = require("./schema/schemaInfo.js");
+const Activity = require("./schema/activity.js");
 
 // XXX - Your submission should work without this line. Comment out or delete
 // this line for tests and before submission!
@@ -316,6 +317,52 @@ app.get("/photosOfUser/:id", function (request, response) {
   });
 });
 
+function logActivity(type, username, userid, photoid=null, photopath=null, comment=null) {
+  const activity = {
+    type: type,
+    time: new Date(),
+    username: username,
+    userid: userid
+  };
+
+  switch(type) {
+    case 'login':
+      break;
+    case 'logout':
+      break;
+    case 'register':
+      break;
+    case 'upload':
+      activity.photo_id = photoid;
+      activity.photo_path = photopath;
+      break;
+    case 'comment':
+      activity.photo_id = photoid;
+      activity.photo_path = photopath;
+      activity.comment = comment;
+      break;
+    default:
+      break;
+  }
+
+  const act = new Activity(activity);
+  act.save();
+}
+
+app.get("/activities", function(request, response) {
+  if (check_login(request)) {
+    Activity.find(undefined, undefined, {limit:5, sort: {time: -1}}).exec((err, activities) => {
+      if(!err && activities.length > 0) {
+        response.status(200).contentType('json').send(JSON.stringify(activities));
+      } else {
+        response.status(200).contentType('json').send(JSON.stringify({}));
+      }
+    });
+  } else {
+    response.status(401).send('failed');
+  }
+});
+
 app.get("/admin/login", function(request, response) {
   if (check_login(request)) {
     response.status(200).send(JSON.stringify({user: request.session.user}));
@@ -344,6 +391,8 @@ app.post("/admin/login", function(request, response) {
       const ph = hash(salt_string, password);
       if (ph === u.password) {
         request.session.user = u._id;
+        request.session.username = u.first_name + ' ' + u.last_name;
+        logActivity('login', request.session.username, request.session.user);
         response.status(200).send(JSON.stringify(u));
       } else {
         response.status(401).send('failed');
@@ -356,6 +405,7 @@ app.post("/admin/login", function(request, response) {
 });
 
 app.get("/admin/logout", function(request, response) {
+  logActivity('logout', request.session.username, request.session.user);
   delete request.session.user;
   response.status(200).send('ok');
 });
@@ -389,6 +439,7 @@ app.post("/commentsOfPhoto/:photo_id", function(request, response) {
         };
         photo.comments = photo.comments.concat([new_comment]);
         photo.save();
+        logActivity('comment', request.session.username, request.session.user, photo._id, photo.file_name, comment);
         response.status(200).send(JSON.stringify(new_comment));
       }
     });
@@ -421,6 +472,7 @@ app.post("/photos/new", uploader.single('file'), function(request, response) {
   const newPhoto = new Photo(newItem);
   newPhoto.save().then((photo) => {
     console.log(photo);
+    logActivity('upload', request.session.username, request.session.user, photo._id, photo.file_name);
     response.status(200).send('ok');
   }).catch((err) => {
     console.log(err);
@@ -465,8 +517,10 @@ app.post('/user', function(request, response) {
         occupation: occupation,
         salt_string: salt_string,
       });
-      newUser.save();
-      response.status(200).send('ok');
+      newUser.save().then(nu => {
+        logActivity('register', first_name + ' ' + last_name, nu._id);
+        response.status(200).send('ok');
+      });
     }
   });
 });

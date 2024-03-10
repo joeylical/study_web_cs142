@@ -1,10 +1,15 @@
 import React from "react";
-import { AppBar, Toolbar, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox } from "@mui/material";
+import { Link } from "react-router-dom";
+import { AppBar, Toolbar, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, FormGroup, FormControlLabel, Checkbox, Popover } from "@mui/material";
 import axios from "axios";
 
 import Avatar from "../UserList/avatar";
 
 import "./styles.css";
+
+function t2t(t) {
+  return (new Date(t)).toLocaleString();
+}
 
 /**
  * Define TopBar, a React component of CS142 Project 5.
@@ -22,7 +27,9 @@ class TopBar extends React.Component {
       dialog: false,
       selectAll: true,
       selected: new Set(),
-      file: ''
+      file: '',
+      popup: false,
+      activities: [],
     };
     this.logout = this.logout.bind(this);
   }
@@ -69,6 +76,17 @@ class TopBar extends React.Component {
   closeDialog() {
     this.setState({
       dialog: false,
+    });
+  }
+
+  updateActivities() {
+    axios.get('/activities').then((result) => {
+      if('data' in result && result.data.length > 0) {
+        this.setState({
+          popup: true,
+          activities: result.data,
+        });
+      }
     });
   }
 
@@ -150,6 +168,98 @@ class TopBar extends React.Component {
             >
               Upload
           </Button>
+          <Button
+            id='ActivityButton'
+            style={{
+              marginLeft: "10px",
+            }}
+            variant="contained"
+            onClick={()=>this.updateActivities()}
+            >
+              Activities
+          </Button>
+          <Popover
+            id="activities"
+            open={this.state.popup}
+            anchorEl={()=>document.querySelector('#ActivityButton')}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'center',
+            }}
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'center',
+            }}
+            style={{
+              flexFlow: 'column',
+              display: 'flex'
+            }}
+            onClose={()=>this.setState({popup: false})}
+            >
+            {
+              this.state.popup?this.state.activities.map(activity => {
+                switch(activity.type) {
+                  case 'login':
+                  case 'logout':
+                  case 'register':
+                    return (
+                      <Typography variant="body" key={activity.time.toLocaleString()} style={{display:'block'}}>
+                        <Link to={"/users/"+activity.userid}>
+                          {activity.username}
+                        </Link>
+                        {' ' + activity.type + ' ' + t2t(activity.time)}
+                      </Typography>
+                    );
+                  case 'upload':
+                    return (
+                      <div
+                        style={{
+                          flexFlow: 'row'
+                        }}
+                        key={activity.time.toLocaleString()}
+                        >
+                          <Link to={"/users/"+activity.userid}>
+                            <img
+                              style={{
+                                maxHeight: '80px',
+                                maxWidth: '80px',
+                              }}
+                              src={'/images/'+activity.photo_path}
+                              />
+                            <Typography variant="body">
+                            {activity.username + ' ' + activity.type + ' ' + t2t(activity.time)}
+                            </Typography>
+                          </Link>
+                      </div>
+                    );
+                  case 'comment':
+                    return (
+                      <div
+                        style={{
+                          flexFlow: 'row'
+                        }}
+                        key={activity.time.toLocaleString()}
+                        >
+                          <Link to={"/users/"+activity.userid}>
+                            <img
+                              style={{
+                                maxHeight: '80px',
+                                maxWidth: '80px',
+                              }}
+                              src={'/images/'+activity.photo_path}
+                              />
+                            <Typography variant="body">
+                            {activity.username + ' ' + activity.type + ' ' + activity.comment + t2t(activity.time)}
+                            </Typography>
+                          </Link>
+                      </div>
+                    );
+                  default:
+                    return <span />;
+                }
+              }):''
+            }
+          </Popover>
           <Button
             style={{
               color: "white",
