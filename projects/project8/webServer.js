@@ -205,6 +205,56 @@ app.get("/user/:id", function (request, response) {
   });
 });
 
+app.get("/userdetail/:id", function(request, response) {
+  if (!check_login(request)) {
+    response.status(401).send('not login');
+    return;
+  }
+
+  const uid = request.params.id;
+
+  Photo.find({$and: [
+                {user_id: uid}, 
+                {$or: [
+                  {perm: {$exists: false}}, 
+                  {perm: {$elemMatch: {$eq:request.session.user}}},
+                  {user_id: request.session.user}]}]}, undefined, {limit:1, sort: 'date_time'}).exec(function(err, photo) {
+    if(err) {
+      response.status(200).send(JSON.stringify({}));
+    } else {
+      console.log(photo);
+      if (photo.length > 0) {
+        if (photo[0].comments.length > 0) {
+          photo[0].comments.sort(i=>i.date_time);
+          photo[0].comments = photo[0].comments.slice(-1);
+        } else {
+          photo[0].comments = [];
+        }
+      } else {
+        photo = [{}];
+      }
+
+      const last = photo[0];
+      const idobj = mongoose.Types.ObjectId(uid);
+      // Photo.find({comments: {$elemMatch: {mentions: {$elemMatch: {$eq: idobj}}}}}, function(error, photos) {
+      Photo.find({$and: [
+                  {comments: 
+                    {$elemMatch: 
+                      {mentions: 
+                        {$elemMatch: 
+                          {$eq: idobj}}}}}, 
+                  {$or: [
+                    {perm: {$exists: false}}, 
+                    {perm: {$elemMatch: {$eq:request.session.user}}},
+                    {user_id: request.session.user}]}]}, function(error, photos) {
+        console.log(photos);
+        const final = [].concat(last, ...photos).filter(x => 'comments' in x);
+        response.status(200).contentType('json').send(JSON.stringify(final));
+      });
+    }
+  });
+});
+
 /**
  * URL /photosOfUser/:id - Returns the Photos for User (id).
  */
@@ -217,7 +267,12 @@ app.get("/photosOfUser/:id", function (request, response) {
   const id = request.params.id;
   console.log(`access /photosOfUser/${id}`);
 
-  Photo.find({user_id: id}).exec(function(error, photos) {
+  Photo.find({$and: [
+              {user_id: id}, 
+              {$or: [
+                {perm: {$exists: false}}, 
+                {perm: {$elemMatch: {$eq:request.session.user}}},
+                {user_id: request.session.user}]}]}).exec(function(error, photos) {
     if (error) {
       response.status(400).send(error);
     } else {
@@ -313,6 +368,8 @@ app.post("/commentsOfPhoto/:photo_id", function(request, response) {
 
   const photoid = request.params.photo_id;
   const comment = request.body.comment;
+  const mentions = request.body.mentions;
+  console.log(mentions);
   console.log(photoid, comment);
   if (comment.length !== 0) {
     Photo.find({_id: photoid}).exec((err, photos) => {
@@ -321,10 +378,14 @@ app.post("/commentsOfPhoto/:photo_id", function(request, response) {
         response.status(400).send('failed');
       } else {
         const photo = photos[0];
+        // const mention_str = /@\[(?<display>[\w\d ]+)\]\((?<id>[0-9a-f]+)\)/;
+        // comment = escape(comment);
+        // comment = comment.replace(mention_str, '<a href="#/users/$<id>">$<display></a>');
         const new_comment = {
           comment: comment,
           date_time: new Date().toISOString(),
           user_id: request.session.user,
+          mentions: mentions,
         };
         photo.comments = photo.comments.concat([new_comment]);
         photo.save();
@@ -343,13 +404,20 @@ app.post("/photos/new", uploader.single('file'), function(request, response) {
   }
 
   const file = request.file;
-  console.log(file);
-  const newItem = {
+  const perm = JSON.parse(request.body.perm);
+  let newItem = {
     user_id: request.session.user,
     file_name: file.filename,
     date_time: new Date(),
     comments: [],
   };
+  if (typeof perm.perm === "string" && perm.perm === "all") {
+    console.log('all permit. do nothing');
+  } else if (perm.perm instanceof Array) {
+    console.log('add perm', perm.perm);
+    newItem.perm = perm.perm;
+  }
+
   const newPhoto = new Photo(newItem);
   newPhoto.save().then((photo) => {
     console.log(photo);

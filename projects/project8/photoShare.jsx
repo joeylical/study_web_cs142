@@ -19,6 +19,7 @@ class PhotoShare extends React.Component {
       current_uid: '',
       current_user: '',
       login_user: '',
+      login_uid: '',
       page: '',
     };
 
@@ -55,9 +56,11 @@ class PhotoShare extends React.Component {
     }
   }
 
-  setLoginUser(user) {
+  setLoginUser(user, uid) {
+    console.log('setLoginUser',user,uid);
     this.setState({
-      login_user: user
+      login_user: user,
+      login_uid: uid
     });
     this.updateUsers();
   }
@@ -70,6 +73,7 @@ class PhotoShare extends React.Component {
       current_uid: '',
       current_user: '',
       login_user: '',
+      login_uid: '',
       page: '',
     });
   }
@@ -88,6 +92,7 @@ class PhotoShare extends React.Component {
                   page={this.state.page}
                   logout={this.logout}
                   current_user={this.state.login_user}
+                  login_uid={this.state.login_uid}
                   />
               </Grid>
               <div className="cs142-main-topbar-buffer" />
@@ -136,7 +141,7 @@ class PhotoShare extends React.Component {
       );
     } else {
         return (
-          <LoginRegister update={(user)=>this.setLoginUser(user)}/>
+          <LoginRegister update={(user, uid)=>this.setLoginUser(user, uid)}/>
       );
     }
   }

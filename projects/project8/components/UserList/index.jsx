@@ -60,7 +60,7 @@ class UserList extends React.Component {
                       >
                         {user.occupation}
                       </Typography>
-                      {' - ' + user.description}
+                      {/* {' - ' + user.description} */}
                     </React.Fragment>
                   )}
                 />

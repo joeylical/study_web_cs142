@@ -22,7 +22,6 @@ class LoginRegister extends React.Component {
   }
 
   handleChange(type, event) {
-    console.log(type);
     if (type === 'username') {
       this.setState({username: event.target.value});
     }else if (type === 'password') {
@@ -35,9 +34,8 @@ class LoginRegister extends React.Component {
     axios.post("/admin/login", {
       loginname: this.state.username,
       password: this.state.password,
-    }).then((reponse) => {
-      console.log(reponse);
-      this.state.update(this.state.username);
+    }).then((response) => {
+      this.state.update(this.state.username, response.data._id);
     }).catch((error) => {
       console.log(error);
     });

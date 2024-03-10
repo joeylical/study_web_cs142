@@ -1,6 +1,8 @@
 import React from 'react';
 import { Dialog, DialogTitle, DialogActions, DialogContent, TextField, Button } from "@mui/material";
 import axios from 'axios';
+import { MentionsInput, Mention } from 'react-mentions';
+import "./styles.css";
 
 class CommentDialog extends React.Component {
   constructor(props) {
@@ -10,7 +12,14 @@ class CommentDialog extends React.Component {
       photoId: this.props.photoId,
       comment: '',
       addComment: this.props.addComment,
+      users: [],
+      mentions: [],
     };
+    setTimeout(() => {
+      this.setState({
+        users: window.users.map(u=>({id: u._id, display: u.first_name + ' ' + u.last_name}))
+      });
+    }, 100);
     this.handleSubmit = this.handleSubmit.bind(this);
     this.handleChange = this.handleChange.bind(this);
     this.closeDialog = this.closeDialog.bind(this);
@@ -25,6 +34,7 @@ class CommentDialog extends React.Component {
         dialog: true,
         photoId: photoId,
         status: dialog,
+        mentions: [],
       };
     } else {
       return {};
@@ -48,7 +58,7 @@ class CommentDialog extends React.Component {
     console.log(0 && this);
     // console.log(event.target.value);
     console.log(this.state.comment);
-    axios.post("/commentsOfPhoto/"+this.state.photoId.toString(),{comment: this.state.comment}).then((response) => {
+    axios.post("/commentsOfPhoto/"+this.state.photoId.toString(),{comment: this.state.comment, mentions: this.state.mentions}).then((response) => {
       console.log(response);
       //todo: add a new comment entry
       //      or refresh
@@ -60,6 +70,14 @@ class CommentDialog extends React.Component {
     });
   }
 
+  addMention(id) {
+    const mentions = this.state.mentions;
+    mentions.push(id);
+    this.setState({
+      mentions: mentions
+    });
+  }
+
   render() {
     return (
       <Dialog
@@ -67,12 +85,20 @@ class CommentDialog extends React.Component {
         onClose={this.closeDialog}
         style={{
           // width: "400px",
-          flexFlow: "column",
+            overflow: 'visible',
+            flexFlow: "column",
         }}
+        // overflowY='visible'
+        maxWidth='sm'
+        fullWidth={true}
         >
         <DialogTitle>New Comment</DialogTitle>
-        <DialogContent>
-          <TextField
+        <DialogContent
+          style={{
+            overflow: 'visible'
+          }}
+          >
+          {/* <TextField
             label="Comment"
             style={{
               width: "100%",
@@ -82,7 +108,21 @@ class CommentDialog extends React.Component {
             rows={5}
             value={this.state.comment}
             onChange={this.handleChange}
-          />
+          /> */}
+          <MentionsInput 
+            className='mentionWrapper'
+            value={this.state.comment} 
+            onChange={this.handleChange}
+            rows={5}
+            placeholder='Comment'
+            >
+            <Mention
+              trigger="@"
+              data={this.state.users}
+              onAdd={(id)=>this.addMention(id)}
+              // markup='<a href="/users/__id__">__display__</a>'
+            />
+          </MentionsInput>
         </DialogContent>
         <DialogActions>
           <Button

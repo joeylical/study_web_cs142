@@ -1,6 +1,7 @@
 import React from "react";
 import {Link} from 'react-router-dom';
 import { Divider, ImageList, ImageListItem, Button, Typography } from "@mui/material";
+import reactStringReplace from "react-string-replace";
 
 import "./styles.css";
 import fetchModel from "../../lib/fetchModelData";
@@ -102,7 +103,13 @@ class UserPhotos extends React.Component {
                         {comment.date_time}
                       </Typography>
                       <Typography variant="body1" width="500px">
-                        {comment.comment}
+                        {/* {comment.comment} */}
+                        {reactStringReplace(comment.comment,
+                                        /(@\[[\w\d ]+\]\([0-9a-f]+\))/gi,  // !!there must be a () around the regexp
+                                        (match, i) => {
+                                          const m = match.match(/@\[(?<display>[\w\d ]+)\]\((?<id>[0-9a-f]+)\)/);
+                                          return (<Link key={i} to={"/users/"+m.groups.id}> {m.groups.display} </Link>);
+                                        })}
                       </Typography>
                       <Divider />
                     </div>
